@@ -1,8 +1,7 @@
 
-
 import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from "@google/genai";
-import type { Message, Player } from '../types';
-import { CHARACTERS } from '../constants';
+import type { Message, Player } from '../src/types'; // Updated import path
+import { CHARACTERS } from '../src/constants'; // Updated import path
 import { revealKey } from "./security";
 
 // The user-provided API key is hardcoded here for deployment on a static host.
@@ -23,6 +22,7 @@ const RECENT_HISTORY_COUNT = 10;
 interface AIResponse {
     narrative: string;
     suggestions: string[];
+    commands: string[];
 }
 
 const summarizeHistory = async (historyToSummarize: Message[]): Promise<string> => {
@@ -40,7 +40,6 @@ const summarizeHistory = async (historyToSummarize: Message[]): Promise<string> 
     try {
         const result = await ai.models.generateContent({
             model: summarizerModel,
-            // FIX: Simplified `contents` for a single-turn text prompt to align with guidelines.
             contents: summarizationPrompt,
             config: {
                 temperature: 0.5,
@@ -65,39 +64,48 @@ export const generateAIResponse = async (
     }).join("\n");
 
     const systemInstructionText = `
-      You are Quinn, the storyteller for a text-based RPG called "Husky's Snow".
+      You are Quinn, the storyteller for a cinematic text RPG called "Husky's Snow: Tales of the Moonshine River Pack".
 
-      **YOUR #1 MOST IMPORTANT RULE: BE EXTREMELY BRIEF.**
-      Your narrative responses **MUST be 5 sentences or less. ALWAYS.** Do not write long descriptions. Your goal is to keep the game moving quickly.
+      **YOUR GOAL:** Provide an immersive, "Frostglass Fantasy" experience. Your writing should be atmospheric, slightly poetic, and cinematic.
 
-      **YOUR #2 MOST IMPORTANT RULE: FACILITATE DICE ROLLS & PROVIDE SUGGESTIONS.**
-      - If a player describes an action with an uncertain outcome (sneaking, fighting, persuading), you **MUST NOT** describe what happens. Your **ONLY** job is to set the scene and then **COMMAND** them to roll the dice (e.g., "**Roll the D20 to sneak past.**").
-      - After describing a scene OR the outcome of a roll, you **MUST** end your turn by asking "What do you do?" and then, on new lines, provide 3-4 distinct, clickable action suggestions.
-      - **Each suggestion must start with a hyphen '-'.** This is a strict formatting rule. Example:
-        - Investigate the strange noise.
-        - Talk to the mysterious husky.
-        - Search the area for tracks.
+      **STYLE GUIDELINES:**
+      - **Length:** You can write slightly longer paragraphs (up to 4-5 sentences) to set the mood, but keep the pace moving.
+      - **Tone:** Mysterious, wintery, tactile. Use sensory details (the crunch of snow, the smell of pine, the cold bite of wind).
+      - **Formatting:** Use *italics* for emphasis or inner thoughts. Use **bold** for key terms or dice requests.
 
-      **GAMEPLAY LOOP:**
-      1. A player says "I want to do X".
-      2. You describe the challenge and say "**Roll the D20 to [do X].**" (And then provide suggestions).
-      3. The player rolls the dice.
-      4. You interpret the roll (1=Crit Fail, 2-10=Fail, 11-15=Success, 16-20=Crit Success) and describe the brief outcome.
-      5. You end by asking "What do you do?" and providing 3-4 new suggestions starting with '-'.
+      **GAMEPLAY MECHANICS (CRITICAL):**
 
-      **CORE PLOT**
-      The Moonshine River is poisoned. A prophecy says a quest to "Find the crystal" is needed to save the pack. The players are the young pups on this quest.
+      1. **DICE ROLLS:** If an action is uncertain, describe the challenge and say "**Roll the D20 to [action].**" Do not describe the outcome yet.
+
+      2. **HIDDEN COMMANDS:** You have control over the game state. Use the following commands at the END of your response (on new lines) to modify the game. These commands are invisible to the player.
+         - **Give Item:** \`[[ADD_ITEM: PlayerName | ItemId]]\` (Item IDs: 'aloe', 'spiderweb', 'berry', 'net', 'crystal', 'trap', 'moss')
+         - **Award Badge:** \`[[AWARD_BADGE: PlayerName | BadgeId]]\` (Badge IDs: 'catch_fish', 'save_pup', 'brave_stand', 'legend_pack')
+         - **Example:** If Shiver finds berries, write: \`[[ADD_ITEM: Shiver | berry]]\`
+
+      3. **SUGGESTIONS:** Always end with "What do you do?" and provide 3-4 clickable options starting with '-'.
+
+      **LORE CONTEXT:**
+      The Moonshine River is poisoned. The prophecy: "Find the crystal to save the pack."
       
-      **YOUR PLAYER CHARACTERS**
+      **PLAYERS:**
       ${allPlayerLore}
 
-      **KEY NON-PLAYER CHARACTERS (NPCs)**
-      - **Mistyfeather (Mist):** The mysterious, telepathic guide. Her fur is blackened. She speaks directly into the pups' minds. She is powerful but secretive.
-      - **Starwhirl:** The noble and respected leader of the Moonshine River Pack.
-      - **Snapper:** Shiver's father. A master crafter, kind and wise.
-      - **Sweetbrush:** The pack's healer, a gentle and knowledgeable Border Collie.
-      - **Storm:** Shiver's brother. Arrogant, mean, and a rival to the group. He is now part of the quest against his will.
-      - **Dragonfly:** Oak's mother. Overprotective to a fault, sees Shiver as a bad influence, and is an antagonist to the group's quest.
+      **KEY NPCS:**
+      - **Mistyfeather (Mist):** Telepathic guide. Black void eyes. Sarcastic.
+      - **Starwhirl:** Pack Leader. Noble.
+      - **Snapper:** Master Crafter. Shiver's dad.
+      - **Sweetbrush:** Healer (Border Collie).
+      - **Dragonfly:** Oak's mom. Over-protective antagonist.
+      - **Storm:** Shiver's mean brother. Rival.
+
+      **ITEMS REGISTRY (For ADD_ITEM):**
+      - 'aloe' (Healing)
+      - 'spiderweb' (Stops Bleeding)
+      - 'berry' (Food)
+      - 'net' (Trapping)
+      - 'crystal' (Quest Item)
+      - 'trap' (Snare)
+      - 'moss' (Bedding)
     `;
 
     let summary: string | null = null;
@@ -143,8 +151,8 @@ export const generateAIResponse = async (
               { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH },
               { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH }
             ],
-            maxOutputTokens: 800,
-            temperature: 1.0,
+            maxOutputTokens: 1000, // Increased for cinematic description
+            temperature: 0.9,
           }
         });
 
@@ -153,28 +161,34 @@ export const generateAIResponse = async (
 
         if (!aiText) {
             if (candidate?.finishReason && candidate.finishReason !== 'STOP') {
-                 if (candidate.finishReason === 'MAX_TOKENS') {
-                    throw new Error(`Quinn's thoughts were too grand and got cut off. You can retry, which may result in a more concise response.`);
-                }
-                throw new Error(`The spirits blocked this action (${candidate.finishReason}). Try doing something else.`);
+                throw new Error(`The spirits blocked this action (${candidate.finishReason}).`);
             }
-            throw new Error('The spirits are silent (No text returned). Please try again.');
+            throw new Error('The spirits are silent.');
         }
 
-        const lines = aiText.split('\n').filter(line => line.trim() !== '');
+        const lines = aiText.split('\n');
         const narrativeLines: string[] = [];
         const suggestionLines: string[] = [];
+        const commandLines: string[] = [];
 
         lines.forEach(line => {
-            if (line.trim().startsWith('-')) {
-                suggestionLines.push(line.trim().substring(1).trim());
+            const trimmed = line.trim();
+            if (trimmed.startsWith('[[') && trimmed.endsWith(']]')) {
+                commandLines.push(trimmed);
+            } else if (trimmed.startsWith('-')) {
+                suggestionLines.push(trimmed.substring(1).trim());
             } else {
                 narrativeLines.push(line);
             }
         });
 
         const narrative = narrativeLines.join('\n').trim();
-        return { narrative, suggestions: suggestionLines };
+
+        return {
+          narrative,
+          suggestions: suggestionLines,
+          commands: commandLines
+        };
 
     } catch (error) {
         throw error;
