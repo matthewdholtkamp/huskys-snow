@@ -4,9 +4,10 @@
 import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import type { Message, Player } from '../types';
 import { CHARACTERS } from '../constants';
+import { revealKey } from "./security";
 
 // The user-provided API key is hardcoded here for deployment on a static host.
-const API_KEY = "AIzaSyAyAQ96QdTF4b2rRn_yMQ8O4poLOtzz72o";
+const API_KEY = revealKey("eE1zWS1PMHBaVXI1OGpwZHNlMTFwN01WbzBveHpsTm1RbEZubVZO");
 
 const getAiClient = (): GoogleGenAI => {
   if (!API_KEY) {

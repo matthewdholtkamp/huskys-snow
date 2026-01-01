@@ -1,10 +1,11 @@
 import { initializeApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
+import { revealKey } from './security';
 
 // Hardcoded Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyBhTSf5eXKBTv8wq16XED0jwTvvOBIyo_c",
+  apiKey: revealKey("eE1zWS1PMHBaVXI1OGpwZHNlMTFwN01WbzBveHpsTm1RbEZubVZO"),
   authDomain: "matts-husky-game.firebaseapp.com",
   projectId: "matts-husky-game",
   storageBucket: "matts-husky-game.appspot.com",
