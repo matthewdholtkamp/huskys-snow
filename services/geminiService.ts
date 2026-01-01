@@ -1,6 +1,5 @@
 
 
-// FIX: Import HarmCategory and HarmBlockThreshold to fix type errors in safetySettings.
 import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import type { Message, Player } from '../types';
 import { CHARACTERS } from '../constants';
