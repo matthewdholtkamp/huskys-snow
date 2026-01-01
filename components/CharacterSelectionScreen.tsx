@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import Snowfall from './Snowfall';
 import StatBar from './StatBar';
-import { CHARACTERS } from '../constants';
-import type { Character, Player } from '../types';
+import { CHARACTERS } from '../src/constants';
+import type { Character, Player } from '../src/types';
 import { Sparkles, Shield, Zap, Brain, Users, Clipboard, LogIn } from './icons';
 
 interface CharacterSelectionScreenProps {
