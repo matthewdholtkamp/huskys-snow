@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Snowfall from './Snowfall';
-import { CHARACTERS } from '../src/constants';
+import { CHARACTERS, ITEMS_REGISTRY, STARTER_ITEM_BY_CHARACTER } from '../src/constants';
 import type { Character, Player } from '../src/types';
 import { Sparkles, Users, Clipboard, LogIn, RotateCcw, Snowflake } from './icons';
 
@@ -369,6 +369,7 @@ const CharacterSelectionScreen: React.FC<CharacterSelectionScreenProps> = ({
             {CHARACTERS.map(char => {
               const isTaken = takenCharNames.includes(char.name);
               const isRecommended = recommendedCharName === char.name;
+              const starterItem = ITEMS_REGISTRY[STARTER_ITEM_BY_CHARACTER[char.id]];
               return (
                 <button
                   type="button"
@@ -422,6 +423,12 @@ const CharacterSelectionScreen: React.FC<CharacterSelectionScreenProps> = ({
                       <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Spirit surge</span>
                       <span className="text-right text-xs font-bold text-cyan-200">{char.ability}</span>
                     </div>
+                    {starterItem && (
+                      <div className="mt-2 flex items-center justify-between gap-3">
+                        <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Starts with</span>
+                        <span className="text-right text-xs font-semibold text-slate-200">{starterItem.icon} {starterItem.name}</span>
+                      </div>
+                    )}
                   </div>
                 </button>
               )

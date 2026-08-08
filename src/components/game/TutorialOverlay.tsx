@@ -41,17 +41,13 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
       ),
     },
     {
-      title: "Stats & Modifier Math",
+      title: "Stats & D20 Checks",
       content: (
         <div className="flex flex-col gap-4 text-center">
           <HelpCircle className="w-12 h-12 text-teal-400 mx-auto" />
           <p className="text-sm leading-relaxed text-slate-300">
-            Every pup has unique stats: <b>Strength (STR)</b>, <b>Agility (AGI)</b>, <b>Smart (INT)</b>, and <b>Spirit (SPI)</b>.
-            When the AI narrator requests a check, your stat modifiers will automatically add to your roll!
-            <br />
-            <span className="text-xs text-indigo-300 font-mono block mt-2">
-              Modifier formula: Math.floor((Stat - 10) / 2)
-            </span>
+            Every pup has <b>Strength</b>, <b>Agility</b>, <b>Smart</b>, and <b>Spirit</b>.
+            When Quinn asks for a check, roll the D20. Your best stats add a bigger bonus automatically.
           </p>
         </div>
       ),
@@ -62,9 +58,9 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
         <div className="flex flex-col gap-4 text-center">
           <Star className="w-12 h-12 text-amber-400 mx-auto animate-spin-slow" />
           <p className="text-sm leading-relaxed text-slate-300">
-            Each pup can channel a once-per-chapter <b>Spirit Surge</b> magic ability.
-            You can also find and consume items like healing berries 🍒 or trap snares ⚙️.
-            If a packmate is downed (0 HP), you can use your turn to revive them!
+            Every pup starts with signature gear and can cast one <b>Spirit Surge</b> per chapter.
+            During a hard check, magic or matching gear can replace the roll and move the story forward.
+            You can also find supplies, weapons, and healing items along the trail.
           </p>
         </div>
       ),
@@ -95,7 +91,7 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
                 ) : practiceRoll > 10 ? (
                   <span className="text-sky-300">Success!</span>
                 ) : (
-                  <span className="text-slate-400">Failure (Try again in game!)</span>
+                  <span className="text-slate-400">Low roll — the story continues with a twist.</span>
                 )}
               </div>
             </div>

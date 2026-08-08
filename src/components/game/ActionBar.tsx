@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Send } from 'lucide-react';
 
@@ -19,20 +19,45 @@ export const ActionBar: React.FC<ActionBarProps> = ({
   disabled = false,
   placeholder,
 }) => {
+  const [waitSeconds, setWaitSeconds] = useState(0);
+
+  useEffect(() => {
+    if (!isThinking) {
+      setWaitSeconds(0);
+      return;
+    }
+
+    const startedAt = Date.now();
+    const intervalId = window.setInterval(() => {
+      setWaitSeconds(Math.floor((Date.now() - startedAt) / 1000));
+    }, 1000);
+
+    return () => window.clearInterval(intervalId);
+  }, [isThinking]);
+
   if (isThinking) {
+    const statusText = waitSeconds < 8
+      ? 'Quinn is shaping the next scene'
+      : waitSeconds < 18
+        ? 'Quinn is writing your next choices'
+        : 'This is taking longer than usual';
+
     return (
-      <div className="flex min-h-16 w-full items-center justify-center gap-3 text-sm text-slate-400" role="status">
-        <span>Quinn is shaping the next scene</span>
-        <span className="flex" aria-hidden="true">
-          {[0, 0.18, 0.36].map((delay) => (
-            <motion.span
-              key={delay}
-              className="mx-0.5 h-1.5 w-1.5 rounded-full bg-cyan-200"
-              animate={{ opacity: [0.25, 1, 0.25], y: [0, -2, 0] }}
-              transition={{ duration: 1.2, repeat: Infinity, delay }}
-            />
-          ))}
-        </span>
+      <div className="flex min-h-16 w-full flex-col items-center justify-center gap-1 text-sm text-slate-400" role="status" aria-live="polite">
+        <div className="flex items-center gap-3">
+          <span>{statusText}</span>
+          <span className="flex" aria-hidden="true">
+            {[0, 0.18, 0.36].map((delay) => (
+              <motion.span
+                key={delay}
+                className="mx-0.5 h-1.5 w-1.5 rounded-full bg-cyan-200"
+                animate={{ opacity: [0.25, 1, 0.25], y: [0, -2, 0] }}
+                transition={{ duration: 1.2, repeat: Infinity, delay }}
+              />
+            ))}
+          </span>
+        </div>
+        {waitSeconds >= 18 && <span className="text-xs text-slate-500">The request will safely stop at 30 seconds so you can retry.</span>}
       </div>
     );
   }

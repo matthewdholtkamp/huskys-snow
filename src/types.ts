@@ -19,6 +19,8 @@ export interface InventoryItem {
   description: string;
   icon: string; // Emoji or Lucide icon name
   effect?: string;
+  category?: 'consumable' | 'tool' | 'weapon' | 'quest';
+  consumable?: boolean;
   quantity: number;
 }
 

@@ -302,7 +302,6 @@ export default function GameScreen({
   const isRollRequired = aiRequestedRoll && !rollAlreadyDone;
 
   // Determine if there is an active stat roll requested by the AI
-  const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
   const activeStatKey = (isRollRequired && lastModelMessage) ? parseRollRequest(lastModelMessage.text) : null;
   const activeModifier = activeStatKey ? getModifier(selectedChar.stats[activeStatKey]) : 0;
   const activeStatAbbr = activeStatKey ? REVERSE_STAT_MAP[activeStatKey] : '';
@@ -397,7 +396,13 @@ export default function GameScreen({
                      {reducedMotionSetting ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                    </button>
                    {playerRole === 'host' && (
-                     <button onClick={onRetry} className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-white/8 hover:text-cyan-200 sm:h-9 sm:w-9" title="Retry AI Response" aria-label="Retry AI Response">
+                     <button
+                       onClick={onRetry}
+                       disabled={isThinking}
+                       className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-white/8 hover:text-cyan-200 disabled:cursor-wait disabled:opacity-35 sm:h-9 sm:w-9"
+                       title={isThinking ? "Story response in progress" : "Retry AI Response"}
+                       aria-label={isThinking ? "Story response in progress" : "Retry AI Response"}
+                     >
                        <RefreshCw className="w-4 h-4" />
                      </button>
                    )}
@@ -479,7 +484,7 @@ export default function GameScreen({
                            cooldownChapter={myPlayer?.abilityCooldownChapter}
                            currentChapterId={chapterId}
                            onUseAbility={handleUseAbilityClick}
-                           disabled={isThinking || !isMyTurn || isRollRequired}
+                           disabled={isThinking || !isMyTurn}
                          />
                        </div>
                     )}
@@ -523,7 +528,7 @@ export default function GameScreen({
                     )}
 
                     {/* If AI asks for roll, we could inject a special button here or relying on suggestions */}
-                    {canRoll && !isDowned && !showIgniteButton ? (
+                    {canRoll && isRollRequired && !isDowned && !showIgniteButton ? (
                        <button
                          onClick={triggerDice}
                          disabled={showDice || !isMyTurn}
@@ -538,27 +543,6 @@ export default function GameScreen({
                          <Dice5 className="w-5 h-5" /> Roll D20
                        </button>
                     ) : null}
-
-                    {/* Re-roll option */}
-                    {canRoll && !isDowned && !showIgniteButton && lastMessage?.isRoll && !isRollRequired && (
-                       <button
-                         onClick={async () => {
-                           if (!isMyTurn || packHeart < 20) return;
-                           if (onSpendPackHeart) {
-                             await onSpendPackHeart(20, 're-rolling failed check');
-                           }
-                           triggerDice();
-                         }}
-                         disabled={!isMyTurn || packHeart < 20 || showDice}
-                         className={`w-full py-4 text-white font-bold rounded-lg shadow-lg mb-4 flex items-center justify-center gap-2 transition-all ${
-                           (!isMyTurn || packHeart < 20)
-                             ? 'bg-slate-800 text-slate-500 border border-white/5 cursor-not-allowed shadow-none opacity-50' 
-                             : 'bg-rose-600 hover:bg-rose-500 shadow-rose-500/30 active:scale-[0.98]'
-                         }`}
-                       >
-                         <RefreshCw className="w-5 h-5" /> Re-roll D20 (Costs 20 Pack Heart)
-                       </button>
-                    )}
 
                     <ActionBar
                       suggestions={isDowned || isRollRequired ? [] : ((suggestionsByPup && suggestionsByPup[selectedChar.name]) || suggestions)}

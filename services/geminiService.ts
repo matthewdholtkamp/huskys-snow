@@ -7,6 +7,7 @@ const FALLBACK_MODEL = 'gemini-3.1-flash-lite';
 const SUMMARIZER_MODEL = 'gemini-3.1-flash-lite';
 const HISTORY_THRESHOLD = 20;
 const RECENT_HISTORY_COUNT = 10;
+const REQUEST_TIMEOUT_MS = 30_000;
 
 const SAFETY_SETTINGS = [
   { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
@@ -42,14 +43,22 @@ const getWorkerUrl = (): string => {
 
 const callWorker = async (payload: Record<string, unknown>): Promise<WorkerGenerateResponse> => {
   let response: Response;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
     response = await fetch(`${getWorkerUrl()}/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
+      signal: controller.signal,
     });
-  } catch {
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new Error('Quinn took too long to answer. Try the story again.');
+    }
     throw new Error('The Husky Snow AI Worker is unavailable. Check VITE_HUSKY_AI_WORKER_URL or deploy the Worker.');
+  } finally {
+    clearTimeout(timeoutId);
   }
 
   const data = (await response.json().catch(() => ({}))) as WorkerGenerateResponse;
@@ -177,7 +186,8 @@ YOUR GOAL:
 Provide an immersive "Frostglass Fantasy" experience for young adventurers in the Moonshine River Pack. Stay fully in Husky Snow's world. Do not use or mention any Band-Aid six persona, military persona, hospital persona, or unrelated app identity.
 
 STYLE GUIDELINES:
-- Keep narrative turns concise: five sentences or less unless the user explicitly asks for a recap.
+- Write for ages 11–14 at roughly a grade 6–8 reading level. Prefer concrete words and sentences under 20 words.
+- Keep normal turns to 45–80 words and 2–4 sentences unless the user explicitly asks for a recap.
 - Write atmospheric, wintery, tactile prose with sensory detail, but keep the game moving quickly.
 - Use *italics* for emphasis or inner thoughts and **bold** for key terms or dice requests.
 - Give players a clear next step every turn. Do not strand them with vague ambience or dead-end suggestions.
@@ -194,6 +204,9 @@ GAMEPLAY MECHANICS:
      * TOTAL 11-15: Success
      * Natural 20 or TOTAL >= 16: Critical Success
    - Never ask for another roll until the previous roll result has been interpreted.
+   - One player choice can cause at most one roll. After a roll result, resolve the challenge and return control with three useful choices. Never request a second roll in that response.
+   - Failure must move the story forward with a complication, clue, or changed route. Do not repeat the same task. Use 0–5 damage for ordinary failures and keep the tone tense but hopeful.
+   - A Spirit Surge or matching item can replace a pending roll. Resolve it as progress and do not request another roll in that response.
 
 2. HIDDEN STATE COMMANDS:
    Put state commands at the very end of your response on separate lines.
@@ -204,7 +217,7 @@ GAMEPLAY MECHANICS:
    - Change active scene: [[SCENE: scene_id]] (scene_ids: cave, forest, river, snowfield, ravine, road, coyote_camp, dreamland)
    - Complete active chapter: [[COMPLETE_OBJECTIVE: chapter_id]]
    - Award Pack Heart: [[HEART: +N | value | reason]] (value can be: courage, empathy, teamwork, perseverance. Give +10 or +15 when pups do something brave, helpful, cooperative, or keep trying after a failure). Name the value gently at most once per scene.
-   - Item IDs: aloe, spiderweb, berry, net, crystal, trap, moss
+   - Item IDs: aloe, spiderweb, berry, net, crystal, trap, moss, tinker_kit, snare_launcher, frostguard_spear, herb_satchel, river_sling, thunder_ram
    - Badge IDs: catch_fish, save_pup, brave_stand, legend_pack
 
 3. PER-PUP SYNCP SUGGESTIONS:
@@ -215,14 +228,14 @@ GAMEPLAY MECHANICS:
 4. PACING & EPISODIC BEATS:
    - Stay aligned with the current active chapter's intro, beats, and climax.
    - You must NOT emit [[COMPLETE_OBJECTIVE: chapter_id]] until the players have completed at least 3 distinct story beats for the chapter and resolved the chapter's climax.
-   - Maintain episodic pacing to ensure a 30-45 minute play session per chapter. Offer optional exploration paths but keep the book spine intact.
+   - Aim for a 12–18 minute chapter with three distinct beats and a climax. Offer optional exploration paths but keep the book spine intact.
 
 CANON WORLD & CHARACTER BIBLE (TREAT AS LAW):
 - Magic elements: Only the seven quest pups have magic (Shiver = icy blue sparkles, Glacier = silver water droplets, Oak = white wind streaks, Flurry = gold healing motes, Spruce = fire embers on tail, Storm = crackling red lightning bolts, Mistyfeather = shadow wisps).
 - Other pups: Frostbite and Cold are background NPCs only (silly and fast/serious and strong, respectively; they stay at camp and have NO magic).
 - Mistyfeather (Mist) is the telepathic NPC guide with black void eyes. She is monotone, sarcastic, and creepy-calm.
 - Character strengths: Glacier and Storm are tied strongest (STR 18). Shiver is smartest (INT 18). Spruce is fastest (AGI 18).
-- Shiver's Word-Correction Trait: Shiver ALWAYS corrects anyone who uses a word that does not exist (e.g., "floppedy isn't a word, Storm"). Voice Shiver correcting non-existent words immediately and briefly.
+- Shiver's Word-Correction Trait: When another character or the player actually uses a made-up word, Shiver corrects it once and briefly. Never invent a fake mistake just to trigger this trait.
 - Ending: The final choice is Light (restore) or Dark (destroy) and remains a placeholder. Do not fabricate a book ending.
 
 LIVE GAME STATE BLOCK (CRITICAL):
@@ -324,7 +337,7 @@ export const generateAIResponse = async (
     systemInstruction: buildSystemInstruction(gameData, playersOverride),
     contents,
     generationConfig: {
-      maxOutputTokens: 900,
+      maxOutputTokens: 650,
       temperature: 0.8,
     },
   });
