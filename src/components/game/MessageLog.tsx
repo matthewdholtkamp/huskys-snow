@@ -115,10 +115,16 @@ const ChapterOrnament: React.FC<{ label?: string }> = ({ label }) => (
 );
 
 export const MessageLog: React.FC<MessageLogProps> = ({ messages }) => {
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    const scrollContainer = scrollRef.current;
+    if (!scrollContainer) return;
+    scrollContainer.scrollTo({ top: scrollContainer.scrollHeight, behavior: 'smooth' });
+  };
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    scrollToBottom();
   }, [messages]);
 
   // Drop caps open the story and the first narrative paragraph after each scene change.
@@ -134,18 +140,19 @@ export const MessageLog: React.FC<MessageLogProps> = ({ messages }) => {
 
   return (
     <FrostContainer
-      className="flex-1 min-h-0 p-0 book-page"
-      contentClassName="h-full min-h-0 overflow-y-auto custom-scrollbar p-4 md:p-8 flex flex-col"
+      className="book-page min-h-0 flex-1 rounded-2xl border border-white/10 bg-slate-950/50 p-0 shadow-[0_18px_60px_rgba(2,8,23,0.3)]"
+      contentClassName="h-full min-h-0"
       noBorder
     >
-      <div className="flex-1 min-h-4" /> {/* Spacer to push messages down initially */}
+      <div ref={scrollRef} className="custom-scrollbar flex h-full min-h-0 flex-col overflow-y-auto p-5 md:px-10 md:py-8">
+        <div className="min-h-4 flex-1" /> {/* Spacer to push messages down initially */}
 
-      <div
-        className="flex flex-col gap-4 md:gap-5"
-        role="log"
-        aria-live="polite"
-      >
-        {messages.map((msg, idx) => {
+        <div
+          className="flex flex-col gap-5 md:gap-6"
+          role="log"
+          aria-live="polite"
+        >
+          {messages.map((msg, idx) => {
           const isUser = msg.role === 'user';
           const isSystem = msg.role === 'system';
           const isModel = msg.role === 'model';
@@ -184,7 +191,7 @@ export const MessageLog: React.FC<MessageLogProps> = ({ messages }) => {
                 key={msg.id || idx}
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                className="self-center my-2 bg-black/40 border border-indigo-500/30 rounded px-4 py-2 text-indigo-200 font-mono text-sm shadow-[0_0_15px_rgba(99,102,241,0.2)]"
+                className="self-center my-2 rounded-lg border border-cyan-300/20 bg-cyan-300/[0.07] px-4 py-2 font-mono text-sm text-cyan-100"
               >
                 {msg.text}
               </motion.div>
@@ -230,9 +237,7 @@ export const MessageLog: React.FC<MessageLogProps> = ({ messages }) => {
                   <Typewriter
                     text={msg.text}
                     render={(shown) => renderStory(msg.text, shown)}
-                    onComplete={() => {
-                      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-                    }}
+                    onComplete={scrollToBottom}
                   />
                 ) : (
                   renderStory(msg.text, msg.text)
@@ -240,9 +245,9 @@ export const MessageLog: React.FC<MessageLogProps> = ({ messages }) => {
               </div>
             </motion.div>
           );
-        })}
+          })}
+        </div>
       </div>
-      <div ref={bottomRef} />
     </FrostContainer>
   );
 };

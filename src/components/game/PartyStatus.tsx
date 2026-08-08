@@ -14,7 +14,7 @@ export const PartyStatus: React.FC<PartyStatusProps> = ({
   localPlayerCharName,
 }) => {
   return (
-    <FrostContainer className="p-3 w-full">
+    <FrostContainer className="w-full shrink-0 p-3">
       <h3 className="text-xs font-serif text-slate-300 uppercase tracking-widest mb-3 border-b border-white/5 pb-1 flex items-center justify-between">
         <span>Pack Status</span>
         <span className="text-[10px] text-indigo-300 font-mono font-normal">{players.length} Active</span>

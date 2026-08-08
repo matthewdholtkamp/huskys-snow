@@ -29,9 +29,9 @@ export const BackgroundLayer: React.FC<BackgroundLayerProps> = ({ scene = 'defau
     return () => mediaQuery.removeEventListener('change', handler);
   }, []);
 
-  // Generate 45 stable snowflake specs
+  // Keep a modest number of stable particles so the game stays smooth on phones.
   const snowflakes = useMemo(() => {
-    return Array.from({ length: 45 }).map((_, idx) => {
+    return Array.from({ length: 28 }).map((_, idx) => {
       const size = Math.random() * 4 + 2; // 2px to 6px
       return {
         id: idx,
@@ -60,7 +60,7 @@ export const BackgroundLayer: React.FC<BackgroundLayerProps> = ({ scene = 'defau
             exit={{ opacity: 0 }}
         >
              {/* Dynamic Particles or "Snow" overlay */}
-            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-15 brightness-100 mix-blend-overlay"></div>
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(255,255,255,0.08),transparent_28%),radial-gradient(circle_at_80%_85%,rgba(34,211,238,0.07),transparent_30%)] opacity-70" />
 
             {/* Ken Burns Effect Wrapper */}
             {!prefersReducedMotion && (

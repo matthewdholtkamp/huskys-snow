@@ -38,6 +38,10 @@ type LocalGameRecord = {
   suggestions: string[];
 };
 
+type GameDebugWindow = Window & {
+  render_game_to_text?: () => string;
+};
+
 const getLocalGameKey = (id: string) => `${LOCAL_GAME_PREFIX}${id}`;
 
 const readLocalGame = (id: string): LocalGameRecord | null => {
@@ -125,6 +129,10 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastPrompt, setLastPrompt] = useState<string | null>(null);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [gameState]);
   
   // --- Auth Effect ---
   useEffect(() => {
@@ -222,13 +230,64 @@ export default function App() {
     return { selectedChar: char, playerRole: role };
   }, [user, gameData]);
 
+  useEffect(() => {
+    const debugWindow = window as GameDebugWindow;
+    debugWindow.render_game_to_text = () => {
+      const activePlayerName = gameData?.turnOrder?.[gameData.currentTurnIndex ?? 0] ?? null;
+      const currentPlayer = selectedChar
+        ? gameData?.players.find((player) => player.charName === selectedChar.name)
+        : null;
+
+      return JSON.stringify({
+        screen: gameState,
+        coordinateSystem: 'DOM interface; no world-space movement controls',
+        gameId,
+        player: selectedChar ? {
+          name: selectedChar.name,
+          role: playerRole,
+          hp: currentPlayer?.hp ?? 100,
+          rank: currentPlayer?.rank ?? 'Pup',
+        } : null,
+        session: gameData ? {
+          chapterId: gameData.chapterId,
+          objective: gameData.objective,
+          scene: gameData.scene,
+          phase: gameData.phase ?? 'initiative',
+          activePlayerName,
+          turnOrder: gameData.turnOrder ?? [],
+          packHeart: gameData.packHeart ?? 100,
+          players: gameData.players.map((player) => ({
+            name: player.charName || 'Choosing',
+            hp: player.hp,
+            initiative: player.initiativeRoll ?? null,
+          })),
+        } : null,
+        recentMessages: messages.slice(-3).map((message) => ({
+          role: message.role,
+          author: message.author ?? null,
+          text: message.text,
+          isRoll: message.isRoll ?? false,
+        })),
+        suggestedActions: suggestions,
+        isThinking,
+      });
+    };
+
+    return () => {
+      delete debugWindow.render_game_to_text;
+    };
+  }, [gameState, gameId, gameData, isThinking, messages, playerRole, selectedChar, suggestions]);
+
 
   // --- AI Trigger Effect (Host-only) ---
   useEffect(() => {
     if (playerRole !== 'host' || isThinking || messages.length === 0) return;
     
     const lastMessage = messages[messages.length - 1];
-    if (lastMessage.role === 'user') {
+    const isInitiativeRoll = lastMessage.isRoll === true
+      && lastMessage.rollOutcome?.startsWith('Initiative:');
+
+    if (lastMessage.role === 'user' && !isInitiativeRoll) {
       // FIX: Replace findLastIndex with a compatible for loop for broader browser support.
       let lastUserMessageIndex = -1;
       for (let i = messages.length - 1; i >= 0; i--) {
@@ -667,7 +726,13 @@ export default function App() {
       if (players.length === 1) {
         // Single-player bypass: auto-resolve initiative phase immediately
         const soloPlayer = players[0];
+        const playersWithInitiative = players.map((player) => (
+          player.userId === soloPlayer.userId
+            ? { ...player, initiativeRoll: player.initiativeRoll ?? 10 }
+            : player
+        ));
         const updateData = {
+          players: playersWithInitiative,
           phase: 'playing' as const,
           turnOrder: [soloPlayer.charName],
           currentTurnIndex: 0,
@@ -744,13 +809,19 @@ export default function App() {
         // Save current active character name so we don't change their turn
         const activeCharName = turnOrder[currentTurnIndex];
 
-        // Combine all players with rolls and sort
-        const rolledPlayers = players.filter(p => p.initiativeRoll !== undefined);
-        const sorted = [...rolledPlayers].sort((a, b) => {
-          if (b.initiativeRoll! === a.initiativeRoll!) {
+        // Preserve established combatants while inserting rolled late joiners.
+        // Older solo sessions may not have stored an initiative result, so
+        // treat their established turn-order position as a neutral roll of 10.
+        const rankedPlayers = players.filter(
+          p => p.initiativeRoll !== undefined || turnOrder.includes(p.charName)
+        );
+        const sorted = [...rankedPlayers].sort((a, b) => {
+          const aInitiative = a.initiativeRoll ?? 10;
+          const bInitiative = b.initiativeRoll ?? 10;
+          if (bInitiative === aInitiative) {
             return a.charName.localeCompare(b.charName);
           }
-          return b.initiativeRoll! - a.initiativeRoll!;
+          return bInitiative - aInitiative;
         });
         const order = sorted.map(p => p.charName);
 
@@ -952,7 +1023,7 @@ export default function App() {
       }
 
       const gameDocRef = doc(db, getGameDocPath(gameId));
-      const { updatedPlayers, wasFirstPlayer } = await runTransaction(db, async (transaction) => {
+      const shouldAnnounceJoin = await runTransaction(db, async (transaction) => {
         const snap = await transaction.get(gameDocRef);
         if (!snap.exists()) {
           throw new Error('GAME_NOT_FOUND');
@@ -975,13 +1046,19 @@ export default function App() {
           lastActiveAt: serverTimestamp(),
         });
 
-        return {
-          updatedPlayers: nextPlayers,
-          wasFirstPlayer: currentPlayers.length === 0,
-        };
+        return currentGame.hostId === user.uid;
       });
-      // Add system message for joining
-      await addMessageToDb('system', `${char.name} has joined the adventure!`);
+
+      // Firestore only permits the host to author system messages. Character
+      // selection is already complete at this point, so a failed optional
+      // announcement must never make the player look as though joining failed.
+      if (shouldAnnounceJoin) {
+        try {
+          await addMessageToDb('system', `${char.name} has joined the adventure!`);
+        } catch (announcementError) {
+          console.warn('Character selected, but the join announcement could not be added.', announcementError);
+        }
+      }
     } catch (err) {
       console.error("Failed to select character", err);
       const message = err instanceof Error && err.message === 'CHARACTER_TAKEN'

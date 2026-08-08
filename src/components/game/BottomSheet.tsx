@@ -26,6 +26,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
             exit={{ opacity: 0 }}
             onClick={onClose}
             className="fixed inset-0 z-40 bg-black/65 backdrop-blur-xs md:hidden"
+            aria-hidden="true"
           />
 
           {/* Drawer Panel */}
@@ -40,6 +41,9 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
               transition: { duration: 0.2 }
             }}
             className="fixed bottom-0 left-0 right-0 z-50 md:hidden max-h-[85vh] flex flex-col rounded-t-3xl border-t border-white/10 bg-slate-900/95 shadow-2xl backdrop-blur-xl"
+            role="dialog"
+            aria-modal="true"
+            aria-label={title}
           >
             {/* Grab Handle */}
             <div className="w-full flex justify-center py-3 cursor-pointer" onClick={onClose}>

@@ -12,16 +12,19 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({ items, onItemSelec
   const slots = Array(9).fill(null).map((_, i) => items[i] || null);
 
   return (
-    <FrostContainer className="p-3 w-full">
+    <FrostContainer className="w-full shrink-0 p-3">
       <h3 className="text-xs font-serif text-slate-300 uppercase tracking-widest mb-3 border-b border-white/5 pb-1">
         Pack Inventory
       </h3>
       <div className="grid grid-cols-3 gap-2">
         {slots.map((item, idx) => (
-          <div
+          <button
+            type="button"
             key={idx}
             onClick={() => item && onItemSelect && onItemSelect(item)}
-            className="aspect-square bg-black/20 rounded border border-white/5 flex items-center justify-center relative group hover:bg-white/5 transition-colors cursor-pointer"
+            disabled={!item}
+            aria-label={item ? `${item.name}, quantity ${item.quantity}` : `Empty inventory slot ${idx + 1}`}
+            className="group relative flex aspect-square items-center justify-center rounded border border-white/5 bg-black/20 transition-colors enabled:cursor-pointer enabled:hover:border-cyan-300/20 enabled:hover:bg-white/5 disabled:cursor-default"
           >
             {item ? (
               <>
@@ -42,7 +45,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({ items, onItemSelec
             ) : (
               <span className="text-white/5 text-xs">+</span>
             )}
-          </div>
+          </button>
         ))}
       </div>
     </FrostContainer>

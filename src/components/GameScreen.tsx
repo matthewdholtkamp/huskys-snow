@@ -127,7 +127,12 @@ export default function GameScreen({
   const isMyTurn = activePlayerName 
     ? activePlayerName === selectedChar.name 
     : true;
-  const showInitiativeOverlay = ((phase === 'initiative') || (phase === 'playing' && myPlayer && myPlayer.initiativeRoll === undefined && players.length > 1)) && !showTutorial;
+  const isUnrankedLateJoiner = phase === 'playing'
+    && myPlayer
+    && myPlayer.initiativeRoll === undefined
+    && !turnOrder.includes(myPlayer.charName)
+    && players.length > 1;
+  const showInitiativeOverlay = (phase === 'initiative' || isUnrankedLateJoiner) && !showTutorial;
   const showTurnBanner = phase === 'playing' && turnOrder && turnOrder.length > 1;
 
   const prevRankRef = useRef<string | null>(null);
@@ -355,56 +360,57 @@ export default function GameScreen({
   const canRoll = playerRole !== 'spectator' && !isThinking && !showDice;
 
   return (
-    <div className="relative w-full h-screen overflow-hidden font-sans text-slate-200">
+    <div className="relative h-[100svh] w-full overflow-hidden font-sans text-slate-200">
       <BackgroundLayer scene={scene} />
 
       <ScreenShake trigger={shakeTrigger}>
-        <div className="relative z-10 w-full h-full min-h-0 box-border flex flex-col md:flex-row p-3 md:p-4 gap-3 md:gap-4">
+        <div className="relative z-10 box-border flex h-full min-h-0 w-full flex-col gap-3 p-2.5 sm:p-3 md:flex-row md:gap-4 md:p-4">
 
           {/* LEFT COLUMN: Character & Stats (Hidden on mobile, drawer optional?) */}
-          <div className="hidden md:flex w-1/4 min-h-0 flex-col gap-4 overflow-y-auto custom-scrollbar pr-1 shrink-0">
+          <aside className="custom-scrollbar hidden min-h-0 w-72 shrink-0 flex-col gap-3 overflow-y-auto pr-1 md:flex xl:w-80" aria-label="Pup and pack details">
              <CharacterSheet character={selectedChar} earnedBadges={localBadges} health={myHp} />
              <InventoryGrid items={localInventory} onItemSelect={(item) => setActiveItemToUse(item)} />
              <PartyStatus players={players} localPlayerCharName={selectedChar.name} />
-          </div>
+          </aside>
 
           {/* CENTER: Main Game Area */}
-          <div className="flex-1 h-full min-h-0 flex flex-col gap-3 md:gap-4 min-w-0 relative">
+          <main className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col gap-2.5 md:gap-3">
              {/* Header */}
-             <div className="shrink-0 flex justify-between items-center bg-black/40 backdrop-blur-md p-3 rounded-xl border border-white/10">
+             <header className="flex shrink-0 items-center justify-between gap-2 rounded-xl border border-white/10 bg-slate-950/65 px-3 py-2.5 backdrop-blur-md">
                 <div className="min-w-0">
-                  <h1 className="text-lg font-serif font-bold text-white tracking-widest truncate">
-                    Husky's Snow <span className="text-slate-400 text-xs font-sans font-normal">| {playerRole.toUpperCase()}</span>
+                  <h1 className="truncate font-serif text-base font-bold tracking-wide text-white md:text-lg">
+                    Husky's Snow <span className="ml-1 hidden font-sans text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-300/70 sm:inline">{playerRole}</span>
                   </h1>
-                  {gameId && <p className="text-[10px] text-slate-500 font-mono truncate">Game {gameId.slice(0, 12)}</p>}
+                  {gameId && <p className="truncate font-mono text-[9px] uppercase tracking-wider text-slate-600">Game {gameId.slice(0, 12)}</p>}
                 </div>
-                <div className="flex gap-2">
-                   <button onClick={() => setShowSpirits(true)} className="p-2 hover:bg-white/10 rounded-full transition-colors text-indigo-400" title="View Spirit Collection">
+                <div className="flex shrink-0 items-center justify-end" aria-label="Game utilities">
+                   <button onClick={() => setShowSpirits(true)} className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-white/8 hover:text-cyan-200 sm:h-9 sm:w-9" title="View Spirit Collection" aria-label="View Spirit Collection">
                      <Compass className="w-4 h-4" />
                    </button>
-                   <button onClick={() => setShowTutorial(true)} className="p-2 hover:bg-white/10 rounded-full transition-colors text-teal-400" title="View Onboarding Tutorial">
+                   <button onClick={() => setShowTutorial(true)} className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-white/8 hover:text-cyan-200 sm:h-9 sm:w-9" title="View Onboarding Tutorial" aria-label="View Onboarding Tutorial">
                      <HelpCircle className="w-4 h-4" />
                    </button>
-                   <button onClick={toggleMute} className="p-2 hover:bg-white/10 rounded-full transition-colors text-amber-400" title={isAudioMuted ? "Unmute Sound" : "Mute Sound"}>
+                   <button onClick={toggleMute} className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-white/8 hover:text-cyan-200 sm:h-9 sm:w-9" title={isAudioMuted ? "Unmute Sound" : "Mute Sound"} aria-label={isAudioMuted ? "Unmute Sound" : "Mute Sound"}>
                      {isAudioMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
                    </button>
-                   <button onClick={toggleMotion} className="p-2 hover:bg-white/10 rounded-full transition-colors text-pink-400" title={reducedMotionSetting ? "Enable Motion/Effects" : "Disable Motion/Effects"}>
+                   <button onClick={toggleMotion} className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-white/8 hover:text-cyan-200 sm:h-9 sm:w-9" title={reducedMotionSetting ? "Enable Motion/Effects" : "Disable Motion/Effects"} aria-label={reducedMotionSetting ? "Enable Motion/Effects" : "Disable Motion/Effects"}>
                      {reducedMotionSetting ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                    </button>
                    {playerRole === 'host' && (
-                     <button onClick={onRetry} className="p-2 hover:bg-white/10 rounded-full transition-colors" title="Retry AI Response">
-                       <RefreshCw className="w-4 h-4 text-slate-300" />
+                     <button onClick={onRetry} className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-white/8 hover:text-cyan-200 sm:h-9 sm:w-9" title="Retry AI Response" aria-label="Retry AI Response">
+                       <RefreshCw className="w-4 h-4" />
                      </button>
                    )}
-                   <button onClick={onLeaveGame} className="p-2 hover:bg-red-500/20 rounded-full transition-colors text-red-400" title="Leave Game">
+                   <span className="mx-1 h-5 w-px bg-white/10" aria-hidden="true" />
+                   <button onClick={onLeaveGame} className="grid h-8 w-8 place-items-center rounded-lg text-rose-400 transition-colors hover:bg-rose-500/15 hover:text-rose-300 sm:h-9 sm:w-9" title="Leave Game" aria-label="Leave Game">
                      <LogOut className="w-4 h-4" />
                    </button>
                 </div>
-             </div>
+             </header>
 
              {/* Objective Tracker HUD */}
              <div className="shrink-0">
-               <ObjectiveTracker chapterTitle={chapterTitle} objectiveText={objective} />
+               <ObjectiveTracker chapterTitle={chapterTitle} objectiveText={objective} packHeart={packHeart} />
              </div>
 
              {modeNotice && (
@@ -413,10 +419,11 @@ export default function GameScreen({
                </div>
              )}
 
-             <div 
+             <button
+               type="button"
                onClick={() => setIsDrawerOpen(true)}
-               className="shrink-0 md:hidden grid grid-cols-3 gap-2 text-center text-xs cursor-pointer hover:bg-white/5 active:bg-white/10 transition-colors p-1 rounded-xl border border-white/10 bg-black/20"
-               title="Open Pack Inventory & Character Info"
+               className="grid shrink-0 grid-cols-3 gap-1 rounded-xl border border-white/10 bg-slate-950/45 p-1 text-center text-xs transition-colors hover:bg-white/5 active:bg-white/10 md:hidden"
+               aria-label="Open pup, inventory, and pack details"
              >
                <div className="bg-black/35 border border-white/5 rounded-lg px-3 py-2">
                  <div className="text-slate-400 uppercase tracking-wider text-[10px]">Pup</div>
@@ -432,7 +439,7 @@ export default function GameScreen({
                  <div className="text-slate-400 uppercase tracking-wider text-[10px]">Badges</div>
                  <div className="font-bold text-amber-300 text-sm">{localBadges.length}</div>
                </div>
-             </div>
+             </button>
 
              {/* Chat / Story Log */}
              <MessageLog messages={messages} />
@@ -448,7 +455,7 @@ export default function GameScreen({
                    </div>
                  </div>
                )}
-               <FrostContainer className="p-4" noBorder>
+               <FrostContainer className="rounded-2xl border border-white/10 bg-slate-950/55 p-3 md:p-3.5" noBorder>
                     {/* Turn Status Banner */}
                     {showTurnBanner && (
                       isMyTurn ? (
@@ -520,11 +527,13 @@ export default function GameScreen({
                        <button
                          onClick={triggerDice}
                          disabled={showDice || !isMyTurn}
-                         className={`w-full py-4 text-white font-bold rounded-lg shadow-lg mb-4 flex items-center justify-center gap-2 transition-all ${
+                         className={`mb-3 flex w-full items-center justify-center gap-2 rounded-xl border py-3 text-sm font-extrabold transition-all ${
                            !isMyTurn 
-                             ? 'bg-slate-800 text-slate-500 border border-white/5 cursor-not-allowed shadow-none opacity-50' 
-                             : 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-500/30 active:scale-[0.98]'
-                         } ${isRollRequired && isMyTurn ? 'animate-bounce' : ''}`}
+                             ? 'cursor-not-allowed border-white/5 bg-slate-800 text-slate-500 opacity-50'
+                             : isRollRequired
+                               ? 'border-cyan-200 bg-cyan-300 text-slate-950 shadow-[0_8px_24px_rgba(34,211,238,0.18)] hover:bg-cyan-200 active:translate-y-px'
+                               : 'border-cyan-300/20 bg-cyan-300/[0.07] text-cyan-100 hover:border-cyan-300/40 hover:bg-cyan-300/10 active:translate-y-px'
+                         }`}
                        >
                          <Dice5 className="w-5 h-5" /> Roll D20
                        </button>
@@ -701,7 +710,7 @@ export default function GameScreen({
                  )}
                </div>
              )}
-          </div>
+          </main>
 
           {/* RIGHT COLUMN: Mobile Inventory / Extra Info (Optional, keeping simple for now) */}
           {/* Could be used for Party Status in future */}
