@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
+import { Send } from 'lucide-react';
 
 interface ActionBarProps {
   suggestions: string[];
@@ -16,92 +17,117 @@ export const ActionBar: React.FC<ActionBarProps> = ({
   characterName,
   isThinking,
   disabled = false,
-  placeholder
+  placeholder,
 }) => {
+  const [waitSeconds, setWaitSeconds] = useState(0);
+
+  useEffect(() => {
+    if (!isThinking) {
+      setWaitSeconds(0);
+      return;
+    }
+
+    const startedAt = Date.now();
+    const intervalId = window.setInterval(() => {
+      setWaitSeconds(Math.floor((Date.now() - startedAt) / 1000));
+    }, 1000);
+
+    return () => window.clearInterval(intervalId);
+  }, [isThinking]);
 
   if (isThinking) {
+    const statusText = waitSeconds < 8
+      ? 'Quinn is shaping the next scene'
+      : waitSeconds < 18
+        ? 'Quinn is writing your next choices'
+        : 'This is taking longer than usual';
+
     return (
-      <div className="w-full h-20 flex items-center justify-center">
-         <motion.div
-           className="w-2 h-2 bg-white rounded-full mx-1"
-           animate={{ opacity: [0.3, 1, 0.3] }}
-           transition={{ duration: 1.5, repeat: Infinity, delay: 0 }}
-         />
-         <motion.div
-           className="w-2 h-2 bg-white rounded-full mx-1"
-           animate={{ opacity: [0.3, 1, 0.3] }}
-           transition={{ duration: 1.5, repeat: Infinity, delay: 0.2 }}
-         />
-         <motion.div
-           className="w-2 h-2 bg-white rounded-full mx-1"
-           animate={{ opacity: [0.3, 1, 0.3] }}
-           transition={{ duration: 1.5, repeat: Infinity, delay: 0.4 }}
-         />
+      <div className="flex min-h-16 w-full flex-col items-center justify-center gap-1 text-sm text-slate-400" role="status" aria-live="polite">
+        <div className="flex items-center gap-3">
+          <span>{statusText}</span>
+          <span className="flex" aria-hidden="true">
+            {[0, 0.18, 0.36].map((delay) => (
+              <motion.span
+                key={delay}
+                className="mx-0.5 h-1.5 w-1.5 rounded-full bg-cyan-200"
+                animate={{ opacity: [0.25, 1, 0.25], y: [0, -2, 0] }}
+                transition={{ duration: 1.2, repeat: Infinity, delay }}
+              />
+            ))}
+          </span>
+        </div>
+        {waitSeconds >= 18 && <span className="text-xs text-slate-500">The request will safely stop at 30 seconds so you can retry.</span>}
       </div>
     );
   }
 
-  // If no AI suggestions, provide fallback context actions based on character role
-  // (In a real scenario, we might want consistent buttons + dynamic ones, but for now dynamic is primary)
   const actionsToShow = suggestions.length > 0 ? suggestions : [
     "Follow Mist's whisper.",
-    "Check the riverbank for clues.",
-    "Ask the pack what they noticed."
+    'Check the riverbank for clues.',
+    'Ask the pack what they noticed.',
   ];
 
   return (
-    <div className="w-full flex flex-col gap-2">
-      <div className="flex flex-wrap gap-2 justify-center">
-        {actionsToShow.map((text, idx) => (
-          <motion.button
-            key={idx}
-            onClick={() => !disabled && onAction(text)}
-            disabled={disabled}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: idx * 0.1 }}
-            className={`
-              px-4 py-3 bg-slate-900/40 rounded-lg
-              text-sm font-medium
-              shadow-[0_4px_14px_0_rgba(0,0,0,0.2)]
-              transition-all flex-grow md:flex-grow-0
-              ${disabled 
-                ? 'opacity-40 border border-white/5 text-slate-500 cursor-not-allowed' 
-                : 'hover:bg-white/10 border border-white/20 hover:border-white/40 text-slate-200 active:scale-95'
-              }
-            `}
-          >
-            {text}
-          </motion.button>
-        ))}
+    <div className="flex w-full flex-col gap-3">
+      <div>
+        <p className="mb-2 text-[10px] font-extrabold uppercase tracking-[0.2em] text-slate-500">Suggested moves</p>
+        <div className="action-scroll flex flex-nowrap gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible">
+          {actionsToShow.map((text, idx) => (
+            <motion.button
+              key={text}
+              type="button"
+              onClick={() => !disabled && onAction(text)}
+              disabled={disabled}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.07 }}
+              className={`min-h-10 shrink-0 whitespace-nowrap rounded-lg border px-3.5 py-2 text-left text-sm font-semibold transition ${
+                disabled
+                  ? 'cursor-not-allowed border-white/5 text-slate-600 opacity-50'
+                  : 'border-white/10 bg-white/[0.035] text-slate-200 hover:border-cyan-300/35 hover:bg-cyan-300/[0.07] hover:text-white active:translate-y-px'
+              }`}
+            >
+              {text}
+            </motion.button>
+          ))}
+        </div>
       </div>
 
-      {/* Custom Input */}
       <form
-        onSubmit={(e) => {
-          e.preventDefault();
+        onSubmit={(event) => {
+          event.preventDefault();
           if (disabled) return;
-          const form = e.currentTarget;
+          const form = event.currentTarget;
           const formData = new FormData(form);
           const input = String(formData.get('customAction') || '');
-          if(input.trim()) onAction(input);
+          if (input.trim()) onAction(input.trim());
           form.reset();
         }}
-        className="w-full mt-2"
+        className="flex w-full items-stretch gap-2"
       >
+        <label htmlFor="custom-action" className="sr-only">Describe what {characterName} does</label>
         <input
+          id="custom-action"
           name="customAction"
           type="text"
           disabled={disabled}
-          placeholder={placeholder || (disabled ? "⏳ Wait for your turn to act..." : `What does ${characterName} do?`)}
-          className={`
-            w-full rounded px-4 py-2 text-sm transition-colors focus:outline-none
-            ${disabled 
-              ? 'bg-slate-950/20 border border-white/5 text-slate-500 placeholder-slate-600 cursor-not-allowed' 
-              : 'bg-black/30 border border-white/10 text-white placeholder-slate-500 focus:border-white/30'
-            }
-          `}
+          autoComplete="off"
+          placeholder={placeholder || (disabled ? 'Wait for your turn to act…' : `What does ${characterName} do?`)}
+          className={`min-h-11 min-w-0 flex-1 rounded-xl border px-4 py-2.5 text-sm transition ${
+            disabled
+              ? 'cursor-not-allowed border-white/5 bg-slate-950/20 text-slate-600 placeholder:text-slate-600'
+              : 'border-white/12 bg-slate-950/55 text-white placeholder:text-slate-500 focus:border-cyan-300/60'
+          }`}
         />
+        <button
+          type="submit"
+          disabled={disabled}
+          aria-label="Send action"
+          className="grid min-h-11 w-12 shrink-0 place-items-center rounded-xl bg-cyan-300 text-slate-950 transition hover:bg-cyan-200 active:translate-y-px disabled:cursor-not-allowed disabled:bg-slate-800 disabled:text-slate-600"
+        >
+          <Send size={18} aria-hidden="true" />
+        </button>
       </form>
     </div>
   );

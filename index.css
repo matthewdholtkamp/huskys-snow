@@ -1,0 +1,132 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  --ink-950: #07111f;
+  --ink-900: #0b1728;
+  --frost-300: #67e8f9;
+  --frost-400: #22d3ee;
+  --paper: rgba(8, 20, 35, 0.82);
+  --line: rgba(226, 232, 240, 0.12);
+}
+
+html {
+  min-width: 320px;
+  background: var(--ink-950);
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background-color: var(--ink-950);
+  color: #e2e8f0;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: rgba(34, 211, 238, 0.28);
+  color: #fff;
+}
+
+:where(button, input, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--frost-300);
+  outline-offset: 3px;
+}
+
+/* Custom scrollbar for chat */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+.action-scroll {
+  scrollbar-width: none;
+}
+
+.action-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+@keyframes fall {
+  0% { transform: translateY(-10vh); opacity: 0; }
+  10% { opacity: 0.2; }
+  90% { opacity: 0.2; }
+  100% { transform: translateY(110vh); opacity: 0; }
+}
+
+.animate-fall {
+  animation: fall linear infinite;
+}
+
+@keyframes spin-slow {
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 20s linear infinite;
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.5s ease-out forwards;
+}
+
+.expedition-grid {
+  background-image:
+    linear-gradient(rgba(125, 211, 252, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(125, 211, 252, 0.035) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: linear-gradient(to bottom, black, transparent 82%);
+}
+
+/* Book-page frame: hairline inner border around the story log */
+.book-page::after {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  border: 1px solid rgba(186, 230, 253, 0.12);
+  border-radius: 10px;
+  pointer-events: none;
+  z-index: 20;
+}
+
+/* Drop cap on chapter/scene-opening paragraphs */
+.drop-cap p:first-of-type::first-letter {
+  float: left;
+  font-family: 'Cinzel', serif;
+  font-size: 3.1em;
+  line-height: 0.85;
+  padding: 0.06em 0.12em 0 0;
+  color: #7dd3fc;
+  text-shadow: 0 0 18px rgba(56, 189, 248, 0.35);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

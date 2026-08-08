@@ -25,8 +25,8 @@ export const ABILITIES: Record<string, Ability> = {
     element: 'Telepathy',
     color: 'text-blue-400 border-blue-500/40 bg-blue-500/10',
     vfxType: 'blue_orbs',
-    description: 'Channels telepathic magic to gain ADVANTAGE on the next Smart check, or receive a telepathic warning from Mist.',
-    type: 'advantage',
+    description: 'Reveal a hidden clue or automatically clear a Smart check with a warning from Mist.',
+    type: 'autosucceed',
     promptTemplate: 'Shiver channels her crafting and telepathic magic—a swirling blue light of orbs forms around her eyes as she reaches out to touch the spirits or construct a clever plan...'
   },
   oak: {
@@ -45,8 +45,8 @@ export const ABILITIES: Record<string, Ability> = {
     element: 'Protective Strike',
     color: 'text-cyan-300 border-cyan-500/40 bg-cyan-500/10',
     vfxType: 'ice_shards',
-    description: 'Summon shards of silver ice to shield a packmate (blocks the next damage) or gain ADVANTAGE on a Strength check.',
-    type: 'shield',
+    description: 'Shield a packmate or automatically clear a Strength-based defense with silver ice.',
+    type: 'autosucceed',
     promptTemplate: 'Glacier summons an Ice Guard! Gleaming silver shards of ice form a shield around her packmate, standing bold and ready to protect...'
   },
   flurry: {
@@ -75,8 +75,8 @@ export const ABILITIES: Record<string, Ability> = {
     element: 'Red Lightning',
     color: 'text-rose-400 border-rose-500/40 bg-rose-500/10',
     vfxType: 'red_bolts',
-    description: 'A powerful strike or force a barrier back, granting ADVANTAGE on the next Strength check.',
-    type: 'advantage',
+    description: 'Break a barrier or automatically clear a Strength challenge with red lightning.',
+    type: 'autosucceed',
     promptTemplate: 'Storm launches a Thunder Charge! Red crackling lightning bolts spark from his black armor as he shoves a barrier or enemy aside with unmatched power...'
   }
 };

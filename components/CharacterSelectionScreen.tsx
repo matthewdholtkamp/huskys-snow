@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import Snowfall from './Snowfall';
-import StatBar from './StatBar';
-import { CHARACTERS } from '../src/constants';
+import { CHARACTERS, ITEMS_REGISTRY, STARTER_ITEM_BY_CHARACTER } from '../src/constants';
 import type { Character, Player } from '../src/types';
-import { Sparkles, Shield, Zap, Brain, Users, Clipboard, LogIn, RotateCcw } from './icons';
+import { Sparkles, Users, Clipboard, LogIn, RotateCcw, Snowflake } from './icons';
 
 interface CharacterSelectionScreenProps {
   onSelectChar: (char: Character) => void;
@@ -159,12 +158,19 @@ const CharacterSelectionScreen: React.FC<CharacterSelectionScreenProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 p-4 md:p-8 overflow-y-auto">
+    <main className="relative min-h-[100svh] overflow-x-hidden bg-slate-950 px-4 py-5 text-slate-100 sm:px-6 md:px-8 md:py-8">
       <Snowfall />
-      <div className="max-w-7xl mx-auto relative z-10">
-        <div className="text-center mb-8">
-            <h2 className="text-4xl font-bold text-cyan-100">Choose Your Pup</h2>
-            <p className="text-slate-400 mt-2">The pack awaits your decision...</p>
+      <div className="expedition-grid fixed inset-0 opacity-50" aria-hidden="true" />
+      <div className="relative z-10 mx-auto max-w-7xl">
+        <header className="mb-7 border-b border-white/10 pb-6">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <div className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.24em] text-cyan-300/75">
+                <Snowflake size={14} aria-hidden="true" /> Pack roster
+              </div>
+              <h1 className="font-serif text-3xl font-bold tracking-tight text-white sm:text-4xl">Choose your pup</h1>
+              <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-400">Every pup brings a different strength to the trail. Pick the one whose instincts match yours.</p>
+            </div>
             {!quizActive && (
               <button
                 onClick={() => {
@@ -173,42 +179,52 @@ const CharacterSelectionScreen: React.FC<CharacterSelectionScreenProps> = ({
                   setQuizScores({});
                   setRecommendedCharName(null);
                 }}
-                className="mt-4 px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white text-sm font-bold rounded-full shadow-lg shadow-indigo-500/25 transition-all active:scale-95 border border-indigo-400/30 flex items-center gap-2 mx-auto"
+                className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-cyan-300/25 bg-cyan-300/10 px-4 py-2.5 text-sm font-bold text-cyan-100 transition hover:border-cyan-300/50 hover:bg-cyan-300/15 active:translate-y-px"
               >
-                <Sparkles size={16} className="animate-pulse" />
-                🔮 Find Your Match: Take the Pup Quiz!
+                <Sparkles size={16} aria-hidden="true" /> Find my pup
               </button>
             )}
-        </div>
+          </div>
+        </header>
+
+        <button
+          onClick={onLeaveGame}
+          className="mb-5 inline-flex min-h-11 items-center gap-2 rounded-lg px-2 text-sm font-bold text-slate-400 transition hover:bg-white/5 hover:text-white"
+        >
+          <LogIn size={18} className="rotate-180" aria-hidden="true" /> Leave game
+        </button>
 
         {gameId && (
-            <div className="max-w-2xl mx-auto bg-slate-950/50 border border-slate-800 rounded-2xl p-4 mb-6 text-center">
-                <div className="mb-3">
-                    <label className="text-xs text-slate-500 uppercase font-bold tracking-wider">Share Game ID</label>
-                    <div className="flex items-center justify-center gap-2 mt-1">
-                        <input type="text" readOnly value={gameId} className="bg-slate-800 text-center text-cyan-300 font-mono rounded-md px-2 py-1 select-all" />
-                        <button onClick={handleCopy} className="p-2 bg-slate-700 hover:bg-slate-600 rounded-md text-slate-300 hover:text-white transition-colors">
-                            <Clipboard size={16} />
-                        </button>
-                    </div>
-                    {copied && <p className="text-emerald-400 text-xs mt-2">Copied to clipboard!</p>}
-                </div>
-                <div className="mt-4 pt-4 border-t border-slate-800">
-                    <h3 className="text-xs text-slate-500 uppercase font-bold tracking-wider flex items-center justify-center gap-2 mb-2"><Users size={14} /> Players in Lobby ({playersInGame.length})</h3>
-                    <div className="flex flex-wrap justify-center gap-2">
-                        {playersInGame.length > 0 ? playersInGame.map(p => (
-                            <span key={p.userId} className="bg-slate-700 text-slate-200 text-sm font-bold px-3 py-1 rounded-full">{p.charName || 'Choosing...'}</span>
-                        )) : (
-                            <span className="text-slate-600 italic text-sm">You are the first one here!</span>
-                        )}
-                    </div>
-                </div>
+          <section aria-label="Game invitation" className="mb-7 grid gap-4 border-y border-white/10 py-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
+            <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+              <div className="shrink-0">
+                <span className="block text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Invite your pack</span>
+                <span className="mt-1 block text-sm text-slate-300">Share this private game code</span>
+              </div>
+              <div className="flex min-w-0 items-center gap-2">
+                <input aria-label="Game code" type="text" readOnly value={gameId} className="min-w-0 flex-1 select-all rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-center font-mono text-sm text-cyan-200 sm:w-64" />
+                <button onClick={handleCopy} aria-label="Copy game code" className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-white/10 bg-white/5 text-slate-300 transition hover:border-cyan-300/40 hover:text-white">
+                  <Clipboard size={16} aria-hidden="true" />
+                </button>
+              </div>
+              {copied && <p role="status" className="text-xs font-bold text-emerald-300">Copied</p>}
             </div>
+
+            <div className="flex items-center gap-3 md:justify-end">
+              <Users size={17} className="text-slate-500" aria-hidden="true" />
+              <div>
+                <span className="block text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">In the lobby</span>
+                <div className="mt-1 flex flex-wrap gap-2">
+                  {playersInGame.length > 0 ? playersInGame.map((player) => (
+                    <span key={player.userId} className="text-sm font-bold text-slate-200">{player.charName || 'Choosing…'}</span>
+                  )) : (
+                    <span className="text-sm text-slate-400">You are first to arrive</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </section>
         )}
-         <button onClick={onLeaveGame} className="absolute top-0 left-0 m-2 p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-full transition-colors">
-            <LogIn size={20} className="rotate-180" />
-            <span className="sr-only">Leave Game</span>
-         </button>
 
         {error && <p className="text-red-400 mb-4 text-center bg-red-900/50 p-3 rounded-lg border border-red-700 max-w-md mx-auto">{error}</p>}
         {modeNotice && <p className="text-amber-200 mb-4 text-center bg-amber-950/60 p-3 rounded-lg border border-amber-700/60 max-w-2xl mx-auto">{modeNotice}</p>}
@@ -349,57 +365,78 @@ const CharacterSelectionScreen: React.FC<CharacterSelectionScreenProps> = ({
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
+          <section aria-label="Available pups" className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {CHARACTERS.map(char => {
               const isTaken = takenCharNames.includes(char.name);
               const isRecommended = recommendedCharName === char.name;
+              const starterItem = ITEMS_REGISTRY[STARTER_ITEM_BY_CHARACTER[char.id]];
               return (
-                <div
+                <button
+                  type="button"
                   key={char.id}
                   onClick={() => !isLoading && !isTaken && onSelectChar(char)}
+                  disabled={isLoading || isTaken}
+                  aria-label={isTaken ? `${char.name} is already taken` : `Choose ${char.name}, ${char.role}`}
                   className={`
-                    group bg-slate-800/90 backdrop-blur-md border rounded-2xl overflow-hidden transition-all duration-300 flex flex-col h-full relative
-                    ${isTaken ? 'opacity-50 cursor-not-allowed' : 'hover:border-cyan-400 cursor-pointer hover:shadow-2xl hover:shadow-cyan-500/20 transform hover:-translate-y-2'}
-                    ${isRecommended && !isTaken ? 'ring-4 ring-indigo-500/70 border-indigo-400 shadow-indigo-500/30 animate-pulse' : 'border-slate-700'}
+                    group relative flex h-full flex-col overflow-hidden rounded-2xl border bg-slate-900/70 text-left backdrop-blur-md transition duration-200
+                    ${isTaken ? 'cursor-not-allowed border-white/5 opacity-45' : 'cursor-pointer border-white/10 hover:-translate-y-1 hover:border-cyan-300/45 hover:bg-slate-900/90 hover:shadow-[0_18px_50px_rgba(2,132,199,0.13)]'}
+                    ${isRecommended && !isTaken ? 'border-cyan-300/60 ring-2 ring-cyan-300/30' : ''}
                   `}
                 >
                   {isRecommended && !isTaken && (
-                    <div className="absolute top-2 right-2 bg-gradient-to-r from-indigo-500 to-purple-600 border border-indigo-400/30 text-[10px] font-extrabold text-white px-2.5 py-0.5 rounded-full shadow-md z-20 flex items-center gap-1.5">
-                      <Sparkles size={8} /> MATCH
+                    <div className="absolute right-3 top-3 z-20 flex items-center gap-1.5 rounded-full border border-cyan-200/25 bg-slate-950/75 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider text-cyan-100 shadow-md">
+                      <Sparkles size={10} aria-hidden="true" /> Quiz match
                     </div>
                   )}
-                  <div className={`h-40 ${char.color} relative flex items-center justify-center overflow-hidden`}>
-                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors"></div>
-                    <char.icon size={80} className="text-white/90 transform group-hover:scale-110 transition-transform duration-500 drop-shadow-md" />
-                    {isTaken && <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white text-xl font-bold uppercase tracking-widest">Taken</div>}
+                  <div className={`relative flex h-28 items-center justify-between overflow-hidden px-5 ${char.color}`}>
+                    <div className="absolute inset-0 bg-gradient-to-r from-black/30 via-black/10 to-white/10" aria-hidden="true" />
+                    <div className="relative">
+                      <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/70">Trail role</span>
+                      <p className="mt-1 max-w-[13rem] text-sm font-extrabold uppercase tracking-wide text-white">{char.role.replace(/^The /, '')}</p>
+                    </div>
+                    <char.icon size={58} className="relative text-white/90 drop-shadow-md transition-transform duration-300 group-hover:scale-105" aria-hidden="true" />
+                    {isTaken && <div className="absolute inset-0 grid place-items-center bg-slate-950/75 text-sm font-extrabold uppercase tracking-[0.24em] text-white">Already chosen</div>}
                   </div>
 
-                  <div className="p-6 flex-1 flex flex-col">
-                    <h3 className="text-2xl font-bold text-white mb-1">{char.name}</h3>
-                    <p className="text-cyan-400 text-xs font-bold mb-4 uppercase tracking-wider flex items-center gap-1">
-                      <Sparkles size={10} /> {char.role}
-                    </p>
-                    <p className="text-slate-300 text-sm mb-6 leading-relaxed flex-1">{char.description}</p>
-
-                    <div className="space-y-3 mt-auto bg-slate-900/50 p-4 rounded-lg border border-slate-700/50">
-                      <StatBar label="STR" value={char.stats.strength} icon={Shield} color="bg-rose-500" />
-                      <StatBar label="AGI" value={char.stats.agility} icon={Zap} color="bg-amber-500" />
-                      <StatBar label="INT" value={char.stats.smart} icon={Brain} color="bg-blue-500" />
-                      <StatBar label="SPR" value={char.stats.spirit} icon={Sparkles} color="bg-violet-500" />
+                  <div className="flex flex-1 flex-col p-5">
+                    <div className="flex items-start justify-between gap-3">
+                      <h2 className="font-serif text-2xl font-bold text-white">{char.name}</h2>
+                      <span className="text-xs font-bold text-cyan-200 opacity-0 transition-opacity group-hover:opacity-100">Choose →</span>
                     </div>
+                    <p className="mt-2 line-clamp-3 min-h-[3.9rem] text-sm leading-relaxed text-slate-300">{char.description}</p>
 
-                    <div className="mt-4 pt-4 border-t border-slate-700 flex justify-between items-center">
-                      <span className="text-xs text-slate-500 uppercase tracking-wide">Special Ability</span>
-                      <span className="text-xs font-bold text-cyan-300 bg-cyan-900/30 px-2 py-1 rounded border border-cyan-500/30">{char.ability}</span>
+                    <dl className="mt-5 grid grid-cols-4 gap-2 border-y border-white/8 py-3">
+                      {[
+                        ['STR', char.stats.strength],
+                        ['AGI', char.stats.agility],
+                        ['INT', char.stats.smart],
+                        ['SPI', char.stats.spirit],
+                      ].map(([label, value]) => (
+                        <div key={label} className="text-center">
+                          <dt className="text-[9px] font-bold uppercase tracking-wider text-slate-500">{label}</dt>
+                          <dd className="mt-0.5 font-mono text-sm font-bold text-slate-100">{value}</dd>
+                        </div>
+                      ))}
+                    </dl>
+
+                    <div className="mt-4 flex items-center justify-between gap-3">
+                      <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Spirit surge</span>
+                      <span className="text-right text-xs font-bold text-cyan-200">{char.ability}</span>
                     </div>
+                    {starterItem && (
+                      <div className="mt-2 flex items-center justify-between gap-3">
+                        <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Starts with</span>
+                        <span className="text-right text-xs font-semibold text-slate-200">{starterItem.icon} {starterItem.name}</span>
+                      </div>
+                    )}
                   </div>
-                </div>
+                </button>
               )
             })}
-          </div>
+          </section>
         )}
       </div>
-    </div>
+    </main>
   );
 };
 

@@ -26,10 +26,11 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({
   ];
 
   return (
-    <FrostContainer className="p-4 w-full h-full flex flex-col gap-4">
+    <FrostContainer className="flex w-full shrink-0 flex-col gap-4 p-4">
       {/* Header */}
       <div className="flex items-center gap-3 border-b border-white/10 pb-3">
-        <div 
+        <button
+          type="button"
           onClick={() => {
             setIsBouncing(true);
             setTimeout(() => setIsBouncing(false), 600);
@@ -40,10 +41,10 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({
           className={`p-2 rounded-lg ${character.color} bg-opacity-20 backdrop-blur-md border border-white/20 cursor-pointer select-none transition-transform duration-300 ${
             isBouncing ? 'scale-125 -translate-y-1.5 rotate-3' : 'hover:scale-105 active:scale-95'
           }`}
-          title={`Pet ${character.name}!`}
+          aria-label={`Pet ${character.name}`}
         >
           <character.icon className="w-6 h-6 text-white" />
-        </div>
+        </button>
         <div>
           <h2 className="text-xl font-serif text-white tracking-wide">{character.name}</h2>
           <p className="text-xs text-slate-300 font-light uppercase tracking-wider">{character.role}</p>
@@ -73,7 +74,7 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({
       </div>
 
       {/* Visual Harness / Badges */}
-      <div className="flex-1 min-h-[120px] bg-black/20 rounded-lg p-3 relative overflow-hidden group">
+      <div className="relative min-h-[88px] overflow-hidden rounded-lg bg-black/20 p-3 group">
         <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white to-transparent" />
         <p className="text-[10px] text-slate-400 uppercase tracking-widest mb-2 text-center">Harness: {character.visuals.harnessColor}</p>
 

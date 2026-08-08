@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { User, onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 import {
   collection,
@@ -15,7 +15,7 @@ import {
 } from 'firebase/firestore';
 import { auth, db, getGameCollectionPath, getGameDocPath, getMessagesColPath } from './services/firebaseService';
 import { generateAIResponse } from './services/geminiService';
-import { CHARACTERS, ITEMS_REGISTRY, BADGES_REGISTRY } from './src/constants';
+import { CHARACTERS, ITEMS_REGISTRY, BADGES_REGISTRY, STARTER_ITEM_BY_CHARACTER } from './src/constants';
 import type { GameState, Character, Player, Message, GameSession } from './src/types';
 import { getNextChapter } from './src/game/chapters';
 import { ABILITIES } from './src/game/magic';
@@ -36,6 +36,10 @@ type LocalGameRecord = {
   gameData: GameSession;
   messages: Message[];
   suggestions: string[];
+};
+
+type GameDebugWindow = Window & {
+  render_game_to_text?: () => string;
 };
 
 const getLocalGameKey = (id: string) => `${LOCAL_GAME_PREFIX}${id}`;
@@ -82,9 +86,9 @@ const sortMessages = (items: Message[]) => {
 
 const STARTING_NARRATIVE = `🌲 **WELCOME TO THE MOONSHINE RIVER PACK** 🌲
 
-The Moonshine River has always been the lifeblood of our pack. But lately, a dark, oily rot has taken hold, poisoning the waters and crying out in the minds of the forest spirits. Seven quest pups have been chosen to venture into the frozen peaks, find the legendary Frost Crystal, and ignite it to decide the fate of our home.
+The Moonshine River is turning dark, and the pack needs help. Six trainee pups must follow Mist, their mysterious guide, into the frozen wilds. Somewhere ahead, the legendary Frost Crystal may save their home.
 
-You stand at the edge of the Faststream Forest. The river murmurs sick and black beside you. A dry, telepathic voice echoes in your mind: *'Finally awake, little stars? The frost rot is spreading. We must act.'* It is Mist, your telepathic guide.
+You stand at the edge of Faststream Forest as black water slips past the ice. Mist's voice enters your mind: *'The frost rot is spreading, little stars. Pick a trail.'*
 
 **What do you do?**`;
 
@@ -95,6 +99,25 @@ const STARTING_SUGGESTIONS: Record<string, string[]> = {
   'Flurry': ['Search for healing berries', 'Examine the sick plants', 'Calm your breathing'],
   'Spruce': ['Scout ahead along the trail', 'Tell a quick joke to defuse tension', 'Climb a tree to look around'],
   'Storm': ['Shove a rotten log aside', 'Growl at the dark shadows', 'Brag about your claws']
+};
+
+const getStarterInventory = (characterId: string) => {
+  const itemId = STARTER_ITEM_BY_CHARACTER[characterId.toLowerCase()];
+  const item = itemId ? ITEMS_REGISTRY[itemId] : null;
+  return item ? [{ ...item, id: itemId, quantity: 1 }] : [];
+};
+
+const hasUnresolvedRollRequest = (items: Message[]) => {
+  let lastModelIndex = -1;
+  for (let index = items.length - 1; index >= 0; index -= 1) {
+    if (items[index].role === 'model') {
+      lastModelIndex = index;
+      break;
+    }
+  }
+
+  if (lastModelIndex === -1 || !items[lastModelIndex].text.includes('Roll the D20')) return false;
+  return !items.slice(lastModelIndex + 1).some((message) => message.isRoll);
 };
 
 const resolvePlayerIndex = (targetName: string, players: Player[]): number => {
@@ -125,6 +148,11 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastPrompt, setLastPrompt] = useState<string | null>(null);
+  const aiRequestInFlightRef = useRef(false);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [gameState]);
   
   // --- Auth Effect ---
   useEffect(() => {
@@ -222,13 +250,64 @@ export default function App() {
     return { selectedChar: char, playerRole: role };
   }, [user, gameData]);
 
+  useEffect(() => {
+    const debugWindow = window as GameDebugWindow;
+    debugWindow.render_game_to_text = () => {
+      const activePlayerName = gameData?.turnOrder?.[gameData.currentTurnIndex ?? 0] ?? null;
+      const currentPlayer = selectedChar
+        ? gameData?.players.find((player) => player.charName === selectedChar.name)
+        : null;
+
+      return JSON.stringify({
+        screen: gameState,
+        coordinateSystem: 'DOM interface; no world-space movement controls',
+        gameId,
+        player: selectedChar ? {
+          name: selectedChar.name,
+          role: playerRole,
+          hp: currentPlayer?.hp ?? 100,
+          rank: currentPlayer?.rank ?? 'Pup',
+        } : null,
+        session: gameData ? {
+          chapterId: gameData.chapterId,
+          objective: gameData.objective,
+          scene: gameData.scene,
+          phase: gameData.phase ?? 'initiative',
+          activePlayerName,
+          turnOrder: gameData.turnOrder ?? [],
+          packHeart: gameData.packHeart ?? 100,
+          players: gameData.players.map((player) => ({
+            name: player.charName || 'Choosing',
+            hp: player.hp,
+            initiative: player.initiativeRoll ?? null,
+          })),
+        } : null,
+        recentMessages: messages.slice(-3).map((message) => ({
+          role: message.role,
+          author: message.author ?? null,
+          text: message.text,
+          isRoll: message.isRoll ?? false,
+        })),
+        suggestedActions: suggestions,
+        isThinking,
+      });
+    };
+
+    return () => {
+      delete debugWindow.render_game_to_text;
+    };
+  }, [gameState, gameId, gameData, isThinking, messages, playerRole, selectedChar, suggestions]);
+
 
   // --- AI Trigger Effect (Host-only) ---
   useEffect(() => {
     if (playerRole !== 'host' || isThinking || messages.length === 0) return;
     
     const lastMessage = messages[messages.length - 1];
-    if (lastMessage.role === 'user') {
+    const isInitiativeRoll = lastMessage.isRoll === true
+      && lastMessage.rollOutcome?.startsWith('Initiative:');
+
+    if (lastMessage.role === 'user' && !isInitiativeRoll) {
       // FIX: Replace findLastIndex with a compatible for loop for broader browser support.
       let lastUserMessageIndex = -1;
       for (let i = messages.length - 1; i >= 0; i--) {
@@ -297,10 +376,14 @@ export default function App() {
     });
   }, [gameId, user, selectedChar, storageMode]);
 
-  const handleProcessCommands = useCallback(async (commands: string[]) => {
+  const handleProcessCommands = useCallback(async (commands: string[], playersOverride?: Player[]) => {
       if (!gameId || !gameData) return;
 
-      const updatedPlayers = [...gameData.players];
+      const updatedPlayers = (playersOverride || gameData.players).map((player) => ({
+        ...player,
+        inventory: player.inventory ? player.inventory.map((item) => ({ ...item })) : [],
+        badges: player.badges ? player.badges.map((badge) => ({ ...badge })) : [],
+      }));
       let sessionUpdates: Partial<GameSession> = {};
       let hasUpdates = false;
 
@@ -502,7 +585,8 @@ export default function App() {
     playersOverride?: Player[]
   ) => {
     const activePlayers = playersOverride || gameData?.players;
-    if (!activePlayers || activePlayers.length === 0) return;
+    if (!activePlayers || activePlayers.length === 0 || aiRequestInFlightRef.current) return;
+    aiRequestInFlightRef.current = true;
     setIsThinking(true);
     setSuggestions([]);
     setLastPrompt(prompt);
@@ -537,7 +621,7 @@ export default function App() {
       }
 
       if (commands && commands.length > 0) {
-          await handleProcessCommands(commands);
+          await handleProcessCommands(commands, activePlayers);
       }
 
       // Advance turn index if we are in turn-based play mode
@@ -610,6 +694,7 @@ export default function App() {
         : message;
       await addMessageToDb('error', `⚠️ ${friendlyMessage}`);
     } finally {
+      aiRequestInFlightRef.current = false;
       setIsThinking(false);
     }
   }, [gameData, addMessageToDb, handleProcessCommands, storageMode, gameId]);
@@ -667,7 +752,13 @@ export default function App() {
       if (players.length === 1) {
         // Single-player bypass: auto-resolve initiative phase immediately
         const soloPlayer = players[0];
+        const playersWithInitiative = players.map((player) => (
+          player.userId === soloPlayer.userId
+            ? { ...player, initiativeRoll: player.initiativeRoll ?? 10 }
+            : player
+        ));
         const updateData = {
+          players: playersWithInitiative,
           phase: 'playing' as const,
           turnOrder: [soloPlayer.charName],
           currentTurnIndex: 0,
@@ -744,13 +835,19 @@ export default function App() {
         // Save current active character name so we don't change their turn
         const activeCharName = turnOrder[currentTurnIndex];
 
-        // Combine all players with rolls and sort
-        const rolledPlayers = players.filter(p => p.initiativeRoll !== undefined);
-        const sorted = [...rolledPlayers].sort((a, b) => {
-          if (b.initiativeRoll! === a.initiativeRoll!) {
+        // Preserve established combatants while inserting rolled late joiners.
+        // Older solo sessions may not have stored an initiative result, so
+        // treat their established turn-order position as a neutral roll of 10.
+        const rankedPlayers = players.filter(
+          p => p.initiativeRoll !== undefined || turnOrder.includes(p.charName)
+        );
+        const sorted = [...rankedPlayers].sort((a, b) => {
+          const aInitiative = a.initiativeRoll ?? 10;
+          const bInitiative = b.initiativeRoll ?? 10;
+          if (bInitiative === aInitiative) {
             return a.charName.localeCompare(b.charName);
           }
-          return b.initiativeRoll! - a.initiativeRoll!;
+          return bInitiative - aInitiative;
         });
         const order = sorted.map(p => p.charName);
 
@@ -917,7 +1014,7 @@ export default function App() {
           maxHp: 100,
           xp: 0,
           rank: 'Pup',
-          inventory: [],
+          inventory: getStarterInventory(char.id),
           badges: starterBadges
       };
 
@@ -952,7 +1049,7 @@ export default function App() {
       }
 
       const gameDocRef = doc(db, getGameDocPath(gameId));
-      const { updatedPlayers, wasFirstPlayer } = await runTransaction(db, async (transaction) => {
+      const shouldAnnounceJoin = await runTransaction(db, async (transaction) => {
         const snap = await transaction.get(gameDocRef);
         if (!snap.exists()) {
           throw new Error('GAME_NOT_FOUND');
@@ -975,13 +1072,19 @@ export default function App() {
           lastActiveAt: serverTimestamp(),
         });
 
-        return {
-          updatedPlayers: nextPlayers,
-          wasFirstPlayer: currentPlayers.length === 0,
-        };
+        return currentGame.hostId === user.uid;
       });
-      // Add system message for joining
-      await addMessageToDb('system', `${char.name} has joined the adventure!`);
+
+      // Firestore only permits the host to author system messages. Character
+      // selection is already complete at this point, so a failed optional
+      // announcement must never make the player look as though joining failed.
+      if (shouldAnnounceJoin) {
+        try {
+          await addMessageToDb('system', `${char.name} has joined the adventure!`);
+        } catch (announcementError) {
+          console.warn('Character selected, but the join announcement could not be added.', announcementError);
+        }
+      }
     } catch (err) {
       console.error("Failed to select character", err);
       const message = err instanceof Error && err.message === 'CHARACTER_TAKEN'
@@ -1171,7 +1274,12 @@ export default function App() {
     await addMessageToDb('system', systemNotice);
     
     // Send prompt to AI
-    const surgePrompt = `[SPIRIT SURGE TRIGGERED] ${ability.promptTemplate} The player has activated this magic. Please narrate the spectacular visual effect in the current environment and how it impacts the scene.`;
+    const resolvingPendingCheck = hasUnresolvedRollRequest(messages);
+    const surgePrompt = `[SPIRIT SURGE TRIGGERED] ${ability.promptTemplate} The player has activated this magic.${
+      resolvingPendingCheck
+        ? ' This replaces the pending roll: resolve the current challenge as a clear success, advance the scene, and do not request another roll in this response.'
+        : ' Narrate its immediate effect, advance the scene, and return a clear choice.'
+    }`;
     await handleTriggerAIResponse(messages, surgePrompt, updatedPlayers);
   }, [gameId, gameData, messages, addMessageToDb, handleTriggerAIResponse, storageMode]);
 
@@ -1192,12 +1300,14 @@ export default function App() {
         usedItemName = item.name;
         itemEffectText = item.effect || '';
 
-        // Decrement quantity or remove
-        if (item.quantity > 1) {
-          item.quantity -= 1;
-          inventory[itemIdx] = item;
-        } else {
-          inventory.splice(itemIdx, 1);
+        // Signature gear and quest items are reusable; found supplies are consumed.
+        if (item.consumable !== false) {
+          if (item.quantity > 1) {
+            item.quantity -= 1;
+            inventory[itemIdx] = item;
+          } else {
+            inventory.splice(itemIdx, 1);
+          }
         }
 
         // Apply health effect if applicable
@@ -1246,13 +1356,13 @@ export default function App() {
 
     // If it's a narrative item (not just healing, or even if healing but has potential narrative context), trigger AI narration!
     if (itemId !== 'aloe' && itemId !== 'berry') {
-      const itemPrompt = `[ITEM USE] ${charName} has used their ${usedItemName} (Effect: ${itemEffectText}). Please narrate how this item is used in the current scene and its immediate outcome.`;
+      const itemPrompt = `[ITEM USE] ${charName} used ${usedItemName} (Effect: ${itemEffectText}). Treat matching gear as a real tactical advantage. If a roll is pending, this replaces that roll: resolve the obstacle, advance the scene, and do not request another roll in this response.`;
       await handleTriggerAIResponse(messages, itemPrompt, updatedPlayers);
     }
   }, [gameId, gameData, messages, addMessageToDb, handleTriggerAIResponse, storageMode]);
   
   const retryLastAction = async () => {
-     if (lastPrompt) {
+     if (lastPrompt && !isThinking && !aiRequestInFlightRef.current) {
       setError(null);
       // Remove the last error message before retrying
       const lastMsg = messages[messages.length - 1];

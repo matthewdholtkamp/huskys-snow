@@ -7,44 +7,115 @@ export const ITEMS_REGISTRY: Record<string, Omit<InventoryItem, 'quantity' | 'id
     name: 'Aloe Leaf',
     description: 'Soothing plant gel. Heals burns and minor wounds.',
     icon: '🌿',
-    effect: 'Heals 5 HP'
+    effect: 'Heals 5 HP',
+    category: 'consumable',
+    consumable: true
   },
   'spiderweb': {
     name: 'Spiderweb',
     description: 'Sticky silk. Stops bleeding or can be used for crafting.',
     icon: '🕸️',
-    effect: 'Stops Bleeding / Crafting Material'
+    effect: 'Stops bleeding or helps with crafting',
+    category: 'consumable',
+    consumable: true
   },
   'berry': {
     name: 'Healing Berry',
     description: 'A sweet, red berry that restores energy.',
     icon: '🍒',
-    effect: 'Heals 3 HP'
+    effect: 'Heals 3 HP',
+    category: 'consumable',
+    consumable: true
   },
   'net': {
     name: 'Fishing Net',
     description: 'Woven by Shiver. Good for catching fish or tripping foes.',
     icon: '🥅',
-    effect: 'Traps Target'
+    effect: 'Traps a target',
+    category: 'tool',
+    consumable: true
   },
   'crystal': {
     name: 'Frost Crystal',
     description: 'A shard of pure ice magic. Cold to the touch.',
     icon: '💎',
-    effect: 'Unknown Power'
+    effect: 'Unknown power',
+    category: 'quest',
+    consumable: false
   },
   'trap': {
     name: 'Snare Trap',
     description: 'A simple wire trap for small game.',
     icon: '⚙️',
-    effect: 'Immobilizes Target'
+    effect: 'Immobilizes a target',
+    category: 'tool',
+    consumable: true
   },
   'moss': {
     name: 'Soft Moss',
     description: 'Good for bedding or padding splints.',
     icon: '🌱',
-    effect: 'Comfort / Crafting'
+    effect: 'Comfort or crafting material',
+    category: 'consumable',
+    consumable: true
+  },
+  'tinker_kit': {
+    name: 'Tinker Kit',
+    description: 'Fold-out hooks, wire, chalk, and tiny tools for clever plans and repairs.',
+    icon: '🧰',
+    effect: 'Reusable tool • Smart solutions',
+    category: 'tool',
+    consumable: false
+  },
+  'snare_launcher': {
+    name: 'Snare Launcher',
+    description: 'A harness-mounted rope launcher for catching, pulling, or tripping from a safe distance.',
+    icon: '🪢',
+    effect: 'Reusable weapon • Control a threat',
+    category: 'weapon',
+    consumable: false
+  },
+  'frostguard_spear': {
+    name: 'Frostguard Spear',
+    description: 'A short frostwood spear carried in a harness loop. It breaks ice and keeps threats back.',
+    icon: '🗡️',
+    effect: 'Reusable weapon • Strength and defense',
+    category: 'weapon',
+    consumable: false
+  },
+  'herb_satchel': {
+    name: 'Healer Satchel',
+    description: 'A refillable pouch of wraps, herbs, and sweet-smelling salts for field care.',
+    icon: '🎒',
+    effect: 'Reusable tool • Aid and recovery',
+    category: 'tool',
+    consumable: false
+  },
+  'river_sling': {
+    name: 'Riverstone Sling',
+    description: 'A light sling for hitting switches or distracting danger without getting close.',
+    icon: '🎯',
+    effect: 'Reusable weapon • Agility at range',
+    category: 'weapon',
+    consumable: false
+  },
+  'thunder_ram': {
+    name: 'Thunder Ram',
+    description: 'A reinforced shoulder guard that focuses Storm\'s lightning into a powerful charge.',
+    icon: '⚡',
+    effect: 'Reusable weapon • Break barriers',
+    category: 'weapon',
+    consumable: false
   }
+};
+
+export const STARTER_ITEM_BY_CHARACTER: Record<string, string> = {
+  shiver: 'tinker_kit',
+  oak: 'snare_launcher',
+  glacier: 'frostguard_spear',
+  flurry: 'herb_satchel',
+  spruce: 'river_sling',
+  storm: 'thunder_ram',
 };
 
 // --- Badge Registry ---
