@@ -2,9 +2,9 @@ import type { Message, Player, GameSession } from '../src/types';
 import { CHARACTERS } from '../src/constants';
 
 const DEFAULT_WORKER_URL = 'https://husky-snow-ai.mholtkamp.workers.dev';
-const PRIMARY_MODEL = 'gemini-3.1-flash-lite';
-const FALLBACK_MODEL = 'gemini-3.1-flash-lite';
-const SUMMARIZER_MODEL = 'gemini-3.1-flash-lite';
+const PRIMARY_MODEL = 'gemini-3.5-flash-lite';
+const FALLBACK_MODEL = 'gemini-3.5-flash-lite';
+const SUMMARIZER_MODEL = 'gemini-3.5-flash-lite';
 const HISTORY_THRESHOLD = 20;
 const RECENT_HISTORY_COUNT = 10;
 const REQUEST_TIMEOUT_MS = 30_000;
@@ -123,7 +123,7 @@ ${historyToSummarize.map((m) => `(${m.author || m.role}): ${m.text}`).join('\n')
       systemInstruction: 'Summarize only the supplied Husky Snow RPG history. Do not continue the story.',
       contents: [{ role: 'user', parts: [{ text: summarizationPrompt }] }],
       generationConfig: {
-        temperature: 0.4,
+        thinkingConfig: { thinkingLevel: 'low' },
         maxOutputTokens: 500,
       },
     });
@@ -338,7 +338,7 @@ export const generateAIResponse = async (
     contents,
     generationConfig: {
       maxOutputTokens: 650,
-      temperature: 0.8,
+      thinkingConfig: { thinkingLevel: 'low' },
     },
   });
 

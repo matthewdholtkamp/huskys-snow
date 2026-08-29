@@ -6,16 +6,13 @@ const ALLOWED_ORIGINS = [
   'http://127.0.0.1:5173',
 ];
 
-const DEFAULT_MODEL = 'gemini-3.1-flash-lite';
-const DEFAULT_FALLBACK_MODEL = 'gemini-3.1-flash-lite';
+const DEFAULT_MODEL = 'gemini-3.5-flash-lite';
+const DEFAULT_FALLBACK_MODEL = 'gemini-3.5-flash-lite';
 const GEMINI_REFERER = 'https://matthewdholtkamp.github.io/husky-snow/';
 const RETRYABLE_STATUSES = new Set([429, 500, 503]);
 const MAX_REQUEST_BYTES = 200_000;
 const ALLOWED_MODELS = new Set([
-  'gemini-2.5-pro',
-  'gemini-2.5-flash',
-  'gemini-2.5-flash-lite',
-  'gemini-3.1-flash-lite',
+  'gemini-3.5-flash-lite',
 ]);
 
 const getCorsHeaders = (request) => {
